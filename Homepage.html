@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumos - Story Visualizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            overflow-x: hidden;
+            background: #f0f0f0 url('222.jpg') no-repeat center center fixed;
+            background-size: auto;
+            color: #333;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        body.dark-theme {
+            background: #0a0810 url('castlenight.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+        }
+
+        #canvas-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+
+        .navbar-custom {
+            padding: 0.8rem 5%;
+            background: rgba(196, 128, 228, 0.6) !important;
+            backdrop-filter: blur(20px);
+            border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2),
+                        0 0 24px rgba(175, 115, 157, 0.25);
+        }
+
+        body.dark-theme .navbar-custom {
+            background: rgba(60, 50, 40, 0.95) !important;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transform-style: preserve-3d;
+        }
+
+        .logo {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(45deg, #662374, #2a0441);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            transform: rotateX(15deg) rotateZ(-2deg);
+            box-shadow: 0 6px 20px rgba(135, 55, 160, 0.3);
+        }
+
+        .logo:hover {
+            transform: rotateX(25deg) rotateZ(3deg) scale(1.1);
+        }
+
+        .brand-name {
+            color: #fff !important;
+            margin: 0;
+            transition: color 0.3s;
+        }
+
+        body.dark-theme .brand-name {
+            color: #fff !important;
+        }
+
+        .nav-link-custom {
+            color: rgba(255, 255, 255, 0.9) !important;
+            padding: 0.75rem 1.5rem !important;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link-custom::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: linear-gradient(45deg, #90AF73, #326243);
+            z-index: -1;
+            opacity: 0;
+            transform: scaleY(0);
+            transition: all 0.3s ease;
+            border-radius: 6px;
+        }
+
+        .nav-link-custom:hover::before {
+            opacity: 1;
+            transform: scaleY(1);
+        }
+
+        .nav-link-custom:hover {
+            color: #fff !important;
+            transform: translateY(-2px);
+        }
+
+        .dropdown-menu-custom {
+            background: rgba(94, 75, 60, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            right: 0 !important;
+            left: auto !important;
+        }
+
+        body.dark-theme .dropdown-menu-custom {
+            background: rgba(60, 50, 40, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dropdown-item-custom {
+            color: white !important;
+            padding: 12px 16px !important;
+            transition: all 0.3s !important;
+        }
+
+        .dropdown-item-custom:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .main-content {
+            padding: 14rem 5% 5rem;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3.75rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(45deg, #947f09, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.03em;
+            text-shadow: 0 4px 20px rgba(177, 140, 255, 0.3);
+            font-family: 'Crimson Text', serif;
+            font-style: italic;
+        }
+
+        .description-container {
+            background: url('wood-texture.jpg') center/cover;
+            backdrop-filter: blur(12px);
+            border-radius: 8px;
+            padding: 2rem;
+            border: 3px solid #856A00;
+            position: relative;
+            margin: 0 auto 3rem;
+            max-width: 800px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2),
+                       inset 0 0 20px rgba(0,0,0,0.1);
+            transform: perspective(1000px) rotateX(2deg);
+        }
+
+        .description-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid #7a624f;
+            border-radius: 5px;
+            pointer-events: none;
+        }
+
+        .description {
+            font-size: 1.15rem;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 0;
+            font-weight: 300;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .bird-box {
+            position: absolute;
+            top: -45px;
+            left: -35px;
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            z-index: 2;
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));
+        }
+
+        .bird-box:hover {
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        .btn-custom {
+            position: relative;
+            background: linear-gradient(45deg, #6a1b9a, #9c27b0);
+            border: none;
+            padding: 1.2rem 4rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            box-shadow: 0 8px 24px rgba(156, 39, 176, 0.3);
+            letter-spacing: 1px;
+        }
+
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(156, 39, 176, 0.4);
+            background: linear-gradient(45deg, #9c27b0, #6a1b9a);
+        }
+
+        .loading-dots {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: #fff;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 4px;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .butterfly {
+            position: fixed;
+            width: 50px;
+            pointer-events: none;
+            z-index: 2;
+            animation: butterflyFlap 0.2s infinite, butterflyMove 15s linear infinite;
+            filter: drop-shadow(0 0 4px rgba(255, 255, 0, 0.4));
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-12px); }
+        }
+
+        @keyframes butterflyFlap {
+            0%, 100% { transform: rotate(10deg) scaleY(1); }
+            50% { transform: rotate(-10deg) scaleY(0.9); }
+        }
+
+        @keyframes butterflyMove {
+            0% {
+                transform: translate(-100vw, -100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+                transform: translate(-90vw, -80vh) rotate(10deg);
+            }
+            30% {
+                transform: translate(-60vw, -50vh) rotate(-15deg);
+            }
+            50% {
+                transform: translate(-30vw, -30vh) rotate(25deg);
+            }
+            70% {
+                transform: translate(0vw, -10vh) rotate(-10deg);
+            }
+            90% {
+                opacity: 1;
+                transform: translate(80vw, 20vh) rotate(15deg);
+            }
+            100% {
+                transform: translate(200vw, 100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .hero-section {
+            position: relative;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital@1&display=swap" rel="stylesheet">
+</head>
+<body>
+    <canvas id="canvas-background"></canvas>
+
+    <nav class="navbar navbar-expand-lg navbar-custom fixed-top">
+        <div class="container-fluid">
+            <div class="logo-container">
+                <div class="logo"></div>
+                <h2 class="brand-name">Lumos</h2>
+            </div>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="Generatepage.html">Generate</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="Canvas.html">Canvas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="Library.html">Library</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-custom" href="AboutPage.html">About</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link nav-link-custom dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            ☰
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-custom dropdown-menu-end">
+                            <li><a class="dropdown-item dropdown-item-custom" href="#" onclick="toggleTheme()">Change Theme</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item dropdown-item-custom text-danger" href="Loginpage.html">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="hero-section">
+            <h1>Wingardium Storyosa!</h1>
+            <div class="description-container">
+                <img src="birdBox.jpg" class="bird-box" id="birdBox" alt="Decorative bird">
+                <p class="description">
+                    Step into the Marauder's Map of storytelling! Transfigure your written words into living scenes 
+                    that dance like golden snitches across the page. Our enchanted quill (powered by ancient runes 
+                    and modern arithmancy) will conjure characters more vivid than a Patronus, settings more 
+                    immersive than the Room of Requirement, and animations that flow smoother than Felix Felicis. 
+                    Perfect for wizards, scribes, and magical creators seeking to illuminate their tales like 
+                    Lumos Maxima!
+                </p>
+            </div>
+            <button class="btn btn-custom text-white" onclick="startLoading()">
+                <span class="button-text">Cast the Spell</span>
+                <div class="loading-dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </button>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const canvas = document.getElementById('canvas-background');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const particles = [];
+        const bigBalls = [];
+        const mouse = { x: null, y: null, radius: 150 };
+        const magicalColors = ['#b18cff', '#ff69fa', '#69fffa', '#ffd700', '#b18cff'];
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 2;
+                this.speedX = (Math.random() - 0.5) * 1.2;
+                this.speedY = (Math.random() - 0.5) * 1.2;
+                this.baseSpeedX = this.speedX;
+                this.baseSpeedY = this.speedY;
+                this.glowPhase = Math.random() * Math.PI * 2;
+                this.hue = 260 + Math.random() * 40;
+                this.hueVariation = Math.random() * 20 - 10;
+            }
+            
+            update() {
+                this.handleMouseInteraction();
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.checkBoundaries();
+                this.glowPhase += 0.05;
+            }
+            
+            draw() {
+                const currentHue = this.hue + Math.sin(this.glowPhase) * this.hueVariation;
+                const glow = Math.abs(Math.sin(this.glowPhase * 2)) * 0.8 + 0.2;
+                ctx.fillStyle = `hsla(${currentHue}, 80%, 50%, ${glow})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            handleMouseInteraction() {
+                if(mouse.x && mouse.y) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if(distance < mouse.radius) {
+                        this.speedX = this.baseSpeedX + (dx * 0.008);
+                        this.speedY = this.baseSpeedY + (dy * 0.008);
+                    } else {
+                        this.speedX = this.baseSpeedX;
+                        this.speedY = this.baseSpeedY;
+                    }
+                }
+            }
+            
+            checkBoundaries() {
+                if(this.x > canvas.width || this.x < 0) this.speedX *= -1;
+                if(this.y > canvas.height || this.y < 0) this.speedY *= -1;
+            }
+        }
+
+        class BigBall {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 30 + 20;
+                this.speedX = (Math.random() - 0.5) * 0.6;
+                this.speedY = (Math.random() - 0.5) * 0.6;
+            }
+            
+            update() {
+                this.handleMouseInteraction();
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.checkBoundaries();
+            }
+            
+            draw() {
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, this.size * 0.3,
+                    this.x, this.y, this.size
+                );
+                gradient.addColorStop(0, 'hsla(270, 80%, 60%, 0.5)');
+                gradient.addColorStop(1, 'hsla(300, 80%, 40%, 0.3)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            handleMouseInteraction() {
+                if(mouse.x && mouse.y) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if(distance < mouse.radius + this.size) {
+                        this.speedX = dx * 0.015;
+                        this.speedY = dy * 0.015;
+                    }
+                }
+            }
+            
+            checkBoundaries() {
+                if(this.x > canvas.width + this.size) this.x = -this.size;
+                if(this.x < -this.size) this.x = canvas.width + this.size;
+                if(this.y > canvas.height + this.size) this.y = -this.size;
+                if(this.y < -this.size) this.y = canvas.height + this.size;
+            }
+        }
+
+        class RainbowWave {
+            constructor() {
+                this.width = 60;
+                this.speed = 0.0015;
+                this.amplitude = canvas.height * 0.3;
+                this.frequency = 0.002;
+                this.phase = 0;
+                this.colorSpeed = 0.001;
+                this.colorOffset = 0;
+            }
+            
+            update() {
+                this.phase += this.speed;
+                this.colorOffset += this.colorSpeed;
+            }
+            
+            draw() {
+                const segments = 400;
+                const points = [];
+                
+                for(let x = 0; x <= canvas.width; x += canvas.width/segments) {
+                    const y = canvas.height/2 + 
+                             Math.sin(x * this.frequency + this.phase) * this.amplitude * 0.8 +
+                             Math.cos(x * this.frequency * 0.5 + this.phase * 0.6) * this.amplitude * 0.4;
+                    points.push({x, y});
+                }
+
+                for(let i = 0; i < points.length - 1; i++) {
+                    const gradient = ctx.createLinearGradient(
+                        points[i].x, points[i].y,
+                        points[i+1].x, points[i+1].y
+                    );
+                    
+                    const colorProgress = (i / points.length + this.colorOffset) % 1;
+                    const colorIndex = Math.floor(colorProgress * (magicalColors.length - 1));
+                    const blendAmount = (colorProgress * (magicalColors.length - 1)) % 1;
+                    
+                    const startColor = this.lerpColor(
+                        magicalColors[colorIndex],
+                        magicalColors[(colorIndex + 1) % magicalColors.length],
+                        blendAmount
+                    ) + 'aa';
+                    
+                    const endColor = this.lerpColor(
+                        magicalColors[(colorIndex + 1) % magicalColors.length],
+                        magicalColors[(colorIndex + 2) % magicalColors.length],
+                        blendAmount
+                    ) + 'aa';
+                    
+                    gradient.addColorStop(0, startColor);
+                    gradient.addColorStop(1, endColor);
+                    
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = this.width * (0.95 + Math.sin(i * 0.05) * 0.05);
+                    ctx.lineCap = 'round';
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(points[i].x, points[i].y);
+                    ctx.lineTo(points[i+1].x, points[i+1].y);
+                    ctx.stroke();
+                }
+            }
+            
+            lerpColor(color1, color2, amount) {
+                const r1 = parseInt(color1.substring(1, 3), 16);
+                const g1 = parseInt(color1.substring(3, 5), 16);
+                const b1 = parseInt(color1.substring(5, 7), 16);
+                
+                const r2 = parseInt(color2.substring(1, 3), 16);
+                const g2 = parseInt(color2.substring(3, 5), 16);
+                const b2 = parseInt(color2.substring(5, 7), 16);
+                
+                const r = Math.round(r1 + (r2 - r1) * amount).toString(16).padStart(2, '0');
+                const g = Math.round(g1 + (g2 - g1) * amount).toString(16).padStart(2, '0');
+                const b = Math.round(b1 + (b2 - b1) * amount).toString(16).padStart(2, '0');
+                
+                return `#${r}${g}${b}`;
+            }
+        }
+
+        function createButterfly() {
+            const butterfly = document.createElement('img');
+            butterfly.src = 'butterfly.png';
+            butterfly.className = 'butterfly';
+            butterfly.style.left = `${Math.random() * window.innerWidth}px`;
+            butterfly.style.top = `${Math.random() * window.innerHeight}px`;
+            butterfly.style.animationDuration = `${10 + Math.random() * 15}s`;
+            document.body.appendChild(butterfly);
+        }
+
+        const rainbowWave = new RainbowWave();
+
+        function init() {
+            for(let i = 0; i < 400; i++) particles.push(new Particle());
+            for(let i = 0; i < 5; i++) bigBalls.push(new BigBall());
+            setInterval(createButterfly, 1500);
+            createButterfly();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            rainbowWave.update();
+            rainbowWave.draw();
+            particles.forEach(p => { p.update(); p.draw(); });
+            bigBalls.forEach(b => { b.update(); b.draw(); });
+            requestAnimationFrame(animate);
+        }
+
+        const birdBox = document.getElementById('birdBox');
+        const birdSound = new Audio('birdSound.mp3');
+        
+        birdBox.addEventListener('click', function() {
+            this.src = 'birdBox2.jpg';
+            birdSound.play();
+            setTimeout(() => this.src = 'birdBox.jpg', 2000);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            rainbowWave.amplitude = canvas.height * 0.12;
+        });
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+        }
+
+        function startLoading() {
+            const button = document.querySelector('.btn-custom');
+            const buttonText = button.querySelector('.button-text');
+            const loadingDots = button.querySelector('.loading-dots');
+            
+            buttonText.style.opacity = '0';
+            loadingDots.style.display = 'flex';
+            
+            setTimeout(() => {
+                buttonText.style.opacity = '1';
+                loadingDots.style.display = 'none';
+            }, 3000);
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
